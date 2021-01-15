@@ -12,11 +12,13 @@ import dash_bootstrap_components as dbc
 import dash_core_components as dcc
 import dash_html_components as html
 from dash.dependencies import Input, Output, State
+import dash_uploader as du
 from app import app
-from app import server
+# from app import server
 from apps import suckmydata
 
 UPLOAD_DIRECTORY = os.getcwd()+"/datasets/app_uploaded_files"
+du.configure_upload(app, r"datasets/app_uploaded_files",use_upload_id=False)
 
 if not os.path.exists(UPLOAD_DIRECTORY):
     os.makedirs(UPLOAD_DIRECTORY)
@@ -47,9 +49,14 @@ def file_download_link(filename):
 
 app.title = 'SuckMyData - Chat Analyzer'
 
-image_filename = 'assets/how_to.png'
-encoded_image = base64.b64encode(open(image_filename, 'rb').read())
-dot_image = base64.b64encode(open('assets/3dots.png', 'rb').read())
+
+ASSETS = os.path.dirname(os.path.abspath(__file__))
+
+THIS_FOLDER = os.path.dirname(os.path.abspath(__file__))
+how_to = os.path.join(THIS_FOLDER, 'assets/how_to.png')
+dots = os.path.join(THIS_FOLDER, 'assets/3dots.png')
+encoded_image = base64.b64encode(open(how_to, 'rb').read())
+dot_image = base64.b64encode(open(dots, 'rb').read())
 
 app.layout = html.Div([
     dcc.Location(id='url', refresh=False),
@@ -70,7 +77,7 @@ index_page = dbc.Container([
                         className='text-center mb-0'),
                 ),
                 style={'color': 'black',},
-    ),  
+    ),
 
     html.Hr(),
     html.Br(),
@@ -88,7 +95,7 @@ index_page = dbc.Container([
                     html.A("Concerned about PRIVACY ?", id="open", className="mr-1",style={'color':'brown','cursor': 'pointer'}),
                     dbc.Modal(
                       [
-                        dbc.ModalHeader(html.H4("Don't Judge us by the Name!"),style={'color':'red'}),
+                        dbc.ModalHeader(html.H4(html.B("Don't Judge us by the Name 😜")),style={'color':'red'}),
                         dbc.ModalBody(["We respect your privacy, no uploaded data or files are stored anywhere on the servers, only an instance of your file is created to compute the data for creating visualizations."]),
                         dbc.ModalFooter(
                          dbc.Button("Close", id="close", className="ml-auto")
@@ -101,22 +108,7 @@ index_page = dbc.Container([
     html.Br(),
 
     html.Div([
-                dcc.Upload(
-            id="upload-data",
-            children=html.Div(
-                ["Drag and drop or click to select a file to upload."]
-                ),
-            style={
-                "width": "100%",
-                "height": "60px",
-                "lineHeight": "60px",
-                "borderWidth": "1px",
-                "borderStyle": "dashed",
-                "borderRadius": "5px",
-                },
-            multiple=True,
-        ),
-        html.P(id="file-list",className='text-center'),
+               du.Upload(id="upload-data",filetypes=['txt']),
             ]),
 
     dbc.Row(
@@ -133,6 +125,10 @@ index_page = dbc.Container([
                 html.Div([
                     dcc.Link(dbc.Button('Start Analysis',id='start_analysis',n_clicks=0,color='success',className="mr-1"), href='/analysis'),
                 ], className="center"),
+                html.Br(),
+                html.Div(
+                    html.P(id='status')
+                ),
             ])
         )
 
@@ -198,13 +194,13 @@ index_page = dbc.Container([
     html.Footer(["Created with 🖤 by ", html.A("Atharva Katre",id="creator",style={'text-decoration':'underline','cursor': 'pointer'})]),
     dbc.Modal(
                 [
-                dbc.ModalHeader(html.H3("Connect with me!"),style={'color':'Green',}),
+                dbc.ModalHeader(html.H3(html.B("Connect with me ⚡")),style={'color':'Green',}),
                 dbc.ModalBody([
                     dbc.Button(html.Span([html.A(className="fab fa-github ml-2",href="https://github.com/AtharvaKatre")])),"        ",
                     dbc.Button(html.Span([html.A(className="fab fa-linkedin ml-2",href="https://www.linkedin.com/in/atharva-katre-563639177")])),"      ",
                     dbc.Button(html.Span([html.A(className="fab fa-twitter ml-2",href="https://twitter.com/katre_atharva")])),"     ",
                     dbc.Button(html.Span([html.A(className="fab fa-instagram ml-2",href="https://www.instagram.com/llatharvall/")])),
-                    
+
                     ],style={'text-align':'center'}),
                 dbc.ModalFooter(
                     dbc.Button("Close", id="socials_close", className="ml-auto")
@@ -220,7 +216,6 @@ def toggle_modal(n1, n2, is_open):
     if n1 or n2:
         return not is_open
     return is_open
-
 
 app.callback(
     Output("modal", "is_open"),
@@ -250,6 +245,14 @@ def update_output(uploaded_filenames, uploaded_file_contents):
     else:
         return [html.P(file_download_link(files[0]))]
 
+@app.callback(
+    Output('status','children'),
+    [Input("start_analysis","n_clicks")]
+              )
+def analysis_status(n):
+    if n>0:
+        return "Generating visualizations..."
+
 # -----------------------------------------------START ANALYSIS CALLBACK--------------------------------------------------------------------------
 
 @app.callback(Output('page-content', 'children'),
@@ -264,7 +267,7 @@ def display_page(pathname):
                 filelist = [ f for f in os.listdir(UPLOAD_DIRECTORY) if not f.endswith(".txt") ]
                 for f in filelist:
                     os.remove(os.path.join(UPLOAD_DIRECTORY, f))
-                
+
                 def startsWithDate(s):
                     pattern = '^(([0-9])|((1)[0-2]))(\/)([1-9]|[0-2][0-9]|(3)[0-1])(\/)(\d{2}|\d{4}), ([0-9]|[1][0-2]):([0-9][0-9])'
                     result = re.match(pattern, s)
@@ -289,15 +292,15 @@ def display_page(pathname):
 
                 def getDataPoint(line):
                     # line = 18/06/17, 22:47 - Loki: Why do you have 2 numbers, Banner?
-                    
+
                     splitLine = line.split(' - ') # splitLine = ['18/06/17, 22:47', 'Loki: Why do you have 2 numbers, Banner?']
-                    
+
                     dateTime = splitLine[0] # dateTime = '18/06/17, 22:47'
-                    
+
                     date, time = dateTime.split(', ') # date = '18/06/17'; time = '22:47'
-                    
+
                     message = ' '.join(splitLine[1:]) # message = 'Loki: Why do you have 2 numbers, Banner?'
-                    
+
                     if startsWithAuthor(message): # True
                         splitMessage = message.split(': ') # splitMessage = ['Loki', 'Why do you have 2 numbers, Banner?']
                         author = splitMessage[0] # author = 'Loki'
@@ -310,12 +313,12 @@ def display_page(pathname):
                 conversationPath = "datasets/app_uploaded_files/"+uploaded_files()[0]
                 with open(conversationPath, encoding="utf-8") as fp:
                     fp.readline() # Skipping first line of the file (usually contains information about end-to-end encryption)
-                        
+
                     messageBuffer = [] # Buffer to capture intermediate output for multi-line messages
                     date, time, author = None, None, None # Intermediate variables to keep track of the current message being processed
-                    
+
                     while True:
-                        line = fp.readline() 
+                        line = fp.readline()
                         if not line: # Stop reading further if end of file has been reached
                             break
                         line = line.strip() # Guarding against erroneous leading and trailing whitespaces
@@ -350,7 +353,7 @@ def display_page(pathname):
                         for char in word:
                             if char in emoji.UNICODE_EMOJI:
                                 emoji_list.append(char)
-                    
+
                 def emoji_counter():
                     extract_emojis(df['Message'])
                     emoji_df = pd.DataFrame(emoji_list, columns=['emoji'])
@@ -385,10 +388,10 @@ def display_page(pathname):
                     return fig
 
                 def night_owls():
-                    fig = px.bar(df[(df['datetime'].dt.hour >= 0) & (df['datetime'].dt.hour < 4)]['Name'].value_counts().rename_axis('Name').reset_index(name='count'), x='count', y='Name', orientation='h', color='Name', color_discrete_sequence=px.colors.sequential.matter[::-1])
-                    fig.update_traces(hovertemplate=None,hoverinfo='x')
-                    fig.update_layout(barmode = 'stack', yaxis={'categoryorder':'total ascending','title':'Group Members','showgrid':False}, xaxis_title='No. of messages from 12 am to 5 am', title_x=0.5,)
-                    fig.update_layout(template='plotly_white', showlegend = False)
+                    fig = px.bar(df[(df['datetime'].dt.hour >= 23) | ((df['datetime'].dt.hour >= 0) & (df['datetime'].dt.hour <= 4))]['Name'].value_counts().rename_axis('Name').reset_index(name='count'), x='count', y='Name', orientation='h', color='Name', color_discrete_sequence=px.colors.sequential.matter_r)
+                    fig.update_traces(hovertemplate=None, hoverinfo='x')
+                    fig.update_layout(barmode='stack', yaxis={'categoryorder': 'total ascending', 'title': 'Group Members', 'showgrid': False}, xaxis_title='No. of messages from 11 am to 5 am', title_x=0.5, )
+                    fig.update_layout(template='plotly_white', showlegend=False)
                     return fig
 
                 def early_birds():
@@ -429,6 +432,40 @@ def display_page(pathname):
                     fig.update_layout(template='plotly_white', showlegend = False)
                     return fig
 
+                def radar_plot():
+                    msg_count = df['Name'].value_counts().rename('count').reset_index()
+                    msg_count.columns = ['Name', 'count']
+                    media_count = df[df['Message'] == '<Media omitted>'].groupby('Name').count()['Message'].sort_values(
+                        ascending=False).rename('count').reset_index()
+                    deleted_count = df[df['Message'] == 'This message was deleted']['Name'].value_counts().reset_index()
+                    deleted_count.columns = ['Name', 'count']
+                    link_df = df[df['Message'].apply(lambda x: True if any(
+                        word in x for word in ['.com', '.in', '.net', '.org', '.to', '.io', 'http']) else False)][
+                        'Name'].value_counts().rename('count').reset_index()
+                    link_df.columns = ['Name', 'count']
+                    contacts_count = df[df['Message'].apply(lambda x: '.vcf (file attached)' in x)][
+                        'Name'].value_counts().reset_index()
+                    contacts_count.columns = ['Name', 'count']
+
+                    fig = go.Figure()
+                    fig.add_trace(go.Scatterpolar(r=msg_count['count'], theta=msg_count['Name'], name='Texts'))
+                    fig.add_trace(go.Scatterpolar(r=deleted_count['count'], theta=deleted_count['Name'], name='Deleted texts'))
+                    fig.add_trace(go.Scatterpolar(r=author_emoji_count[::-1], theta=df['Name'].unique(), name='Emojis'))
+                    fig.add_trace(go.Scatterpolar(r=media_count['count'], theta=media_count['Name'],
+                                                  name='Media(pics, video, audio, gifs) sent'))
+                    fig.add_trace(go.Scatterpolar(r=link_df['count'], theta=link_df['Name'], name='Links'))
+                    fig.add_trace(go.Scatterpolar(r=contacts_count['count'], theta=contacts_count['Name'], name='Contacts'))
+                    fig.update_traces(fill='toself', hovertemplate=None)
+                    fig.update_layout(legend=dict(
+                        orientation="h",
+                        yanchor="bottom",
+                        y=1.02,
+                        xanchor="right",
+                        x=1
+                    ))
+                    fig.update_layout(margin=dict(t=50, b=20, l=30, r=30))
+                    fig.update_layout(polar=dict(radialaxis=dict(visible=True)))
+                    return fig
                 def overall_activity():
                     no_of_msg=[]
                     for date in df['Date'].unique():
@@ -481,7 +518,7 @@ def display_page(pathname):
 
                     dbc.Row(
                         dbc.Col(html.H1(html.A("SuckMyData",
-                                        className='text-center mt-4',href="/",style={'color': 'Green','text-decoration':'None','cursor':'pointer'}))
+                                        className='text-center mt-4',style={'color': 'Green','text-decoration':'None'}))
                                 ),
                     ),
                     dbc.Row(
@@ -577,7 +614,7 @@ def display_page(pathname):
                     dbc.Row([
                         dbc.Col([
                             html.Div([
-                                html.H2(["Night Owls - 12 AM to 5 AM"], className='text-center mt-xl-5'),
+                                html.H2(["Night Owls - 11 AM to 5 AM"], className='text-center mt-xl-5'),
                             ]),
                             html.Div([
                             dcc.Graph(
@@ -650,24 +687,11 @@ def display_page(pathname):
                         dbc.Col([
                             html.Div([
                                 html.H2(["Content Distribution"], className='text-center mt-4'),
-                                html.P(["Select a content type from below dropdown menu"], className='text-center mt-4'),
                             ]),
-                            dcc.Dropdown(
-                                id='dropdown',
-                                options=[
-                                {'label': 'Texts', 'value': 'text'},
-                                {'label': 'Media', 'value': 'media'},
-                                {'label': 'Deleted Messages', 'value': 'deleted'},
-                                {'label': 'Emojis', 'value': 'emoji'},
-                                {'label': 'Links', 'value': 'links'},
-                                {'label': 'Contacts', 'value': 'contacts'},
-                                ],value='deleted'
-
-                            ),
                             html.Div([
                                 dcc.Graph(
                                     id = 'radar plot',
-                                    figure = {}
+                                    figure = radar_plot()
                                 )])
                         ])
                     ], no_gutters=True, justify='center'),
@@ -750,7 +774,7 @@ def display_page(pathname):
                     html.Footer(["Created with 🖤 by ", html.A("Atharva Katre",id="creator",style={'text-decoration':'underline','cursor': 'pointer'})]),
                     dbc.Modal(
                     [
-                    dbc.ModalHeader(html.H3("Connect with me!"),style={'color':'Green',}),
+                    dbc.ModalHeader(html.H3(html.B("Connect with me ⚡")),style={'color':'Green',}),
                     dbc.ModalBody([
                         dbc.Button(html.Span([html.A(className="fab fa-github ml-2",href="https://github.com/AtharvaKatre")])),"        ",
                         dbc.Button(html.Span([html.A(className="fab fa-linkedin ml-2",href="https://www.linkedin.com/in/atharva-katre-563639177")])),"      ",
@@ -804,7 +828,7 @@ def display_page(pathname):
                                                                   'cursor': 'pointer'})]),
                 dbc.Modal(
                     [
-                        dbc.ModalHeader(html.H3("Connect with me!"), style={'color': 'Green', }),
+                        dbc.ModalHeader(html.H3(html.B("Connect with me ⚡")), style={'color': 'Green'}),
                         dbc.ModalBody([
                             dbc.Button(html.Span(
                                 [html.A(className="fab fa-github ml-2", href="https://github.com/AtharvaKatre")])),
@@ -833,75 +857,6 @@ def display_page(pathname):
 
     else:
         return index_page
-
-    @app.callback(
-    Output(component_id='radar plot',component_property='figure'),
-    [Input(component_id='dropdown',component_property='value')],
-)
-    def update_my_graph(val_chosen):
-        if val_chosen =='text':
-            msg_count = df['Name'].value_counts().rename('count').reset_index()
-            msg_count.columns=['Name','count']
-            fig = go.Figure()
-            fig.add_trace(go.Scatterpolar(r=msg_count['count'],theta=msg_count['Name'],name='No of texts sent'))
-            fig.update_traces(fill='toself',hovertemplate=None)
-            fig.update_layout(margin=dict(t=50, b=20, l=30, r=30))
-            fig.update_layout(polar=dict(radialaxis=dict(visible=True)))
-            return fig
-        if val_chosen =='media':
-            media_count = df[df['Message']=='<Media omitted>'].groupby('Name').count()['Message'].sort_values(ascending=False).rename('count').reset_index()
-            fig = go.Figure()
-            fig.add_trace(go.Scatterpolar(r=media_count['count'],theta=media_count['Name'],name='Media(pics, video, audio, gifs) sent'))
-            fig.update_traces(fill='toself',hovertemplate=None)
-            fig.update_layout(margin=dict(t=50, b=20, l=30, r=30))
-            fig.update_layout(polar=dict(radialaxis=dict(visible=True)))
-            return fig
-        if val_chosen =='deleted':
-            deleted_count = df[df['Message']=='This message was deleted']['Name'].value_counts().reset_index()
-            deleted_count.columns = ['Name','count']
-            fig = go.Figure()
-            fig.add_trace(go.Scatterpolar(r=deleted_count['count'],theta=deleted_count['Name'],name='Media(pics, video, audio, gifs) sent'))
-            fig.update_traces(fill='toself',hovertemplate=None)
-            fig.update_layout(margin=dict(t=50, b=20, l=30, r=30))
-            fig.update_layout(polar=dict(radialaxis=dict(visible=True)))
-            return fig
-        if val_chosen =='emoji':
-            fig = go.Figure()
-            fig.add_trace(go.Scatterpolar(r=author_emoji_count[::-1],theta=df['Name'].unique(),name='Emojis sent'))
-            fig.update_traces(fill='toself',hovertemplate=None)
-            fig.update_layout(margin=dict(t=50, b=0, l=30, r=30))
-            fig.update_layout(polar=dict(radialaxis=dict(visible=True)))
-            return fig
-        if val_chosen =='links':
-            link_df = df[df['Message'].apply(lambda x: True if any(word in x for word in ['.com','.in','.net','.org','.to','.io','http'])else False)]['Name'].value_counts().rename('count').reset_index()
-            link_df.columns=['Name','count']
-            fig = go.Figure()
-            fig.add_trace(go.Scatterpolar(r=link_df['count'],theta=link_df['Name'],name='Links sent'))
-            fig.update_traces(fill='toself',hovertemplate=None)
-            fig.update_layout(margin=dict(t=50, b=0, l=30, r=30))
-            fig.update_layout(polar=dict(radialaxis=dict(visible=True)))
-            return fig
-        if val_chosen =='contacts':
-            contacts_count = df[df['Message'].apply(lambda x : '.vcf (file attached)' in x)]['Name'].value_counts().reset_index()
-            contacts_count.columns = ['Name','count']
-            fig = go.Figure()
-            fig.add_trace(go.Scatterpolar(r=contacts_count['count'],theta=contacts_count['Name'],name='Links sent'))
-            fig.update_traces(fill='toself',hovertemplate=None)
-            fig.update_layout(margin=dict(t=50, b=0, l=30, r=30))
-            fig.update_layout(polar=dict(radialaxis=dict(visible=True)))
-            return fig
-        else :
-            raise dash.exceptions.PreventUpdate
-
-    def toggle_modal(n1, n2, is_open):
-        if n1 or n2:
-            return not is_open
-        return is_open
-
-    app.callback(
-    Output("socials", "is_open"),
-    [Input("creator", "n_clicks"), Input("socials_close", "n_clicks")],
-    [State("socials", "is_open")],)(toggle_modal)
 
 if __name__ == "__main__":
     app.run_server()

@@ -65,10 +65,10 @@ def emoji_master():
     return fig
 
 def night_owls():
-    fig = px.bar(df[(df['datetime'].dt.hour >= 0) & (df['datetime'].dt.hour < 4)]['Name'].value_counts().rename_axis('Name').reset_index(name='count'), x='count', y='Name', orientation='h', color='Name', color_discrete_sequence=px.colors.sequential.matter[::-1])
-    fig.update_traces(hovertemplate=None,hoverinfo='x')
-    fig.update_layout(barmode = 'stack', yaxis={'categoryorder':'total ascending','title':'Group Members','showgrid':False}, xaxis_title='No. of messages from 12 am to 5 am', title_x=0.5,)
-    fig.update_layout(template='plotly_white', showlegend = False)
+    fig = px.bar(df[(df['datetime'].dt.hour >= 23) | ((df['datetime'].dt.hour >= 0) & (df['datetime'].dt.hour <= 4))]['Name'].value_counts().rename_axis('Name').reset_index(name='count'), x='count', y='Name', orientation='h', color='Name', color_discrete_sequence=px.colors.sequential.matter_r)
+    fig.update_traces(hovertemplate=None, hoverinfo='x')
+    fig.update_layout(barmode='stack', yaxis={'categoryorder': 'total ascending', 'title': 'Group Members', 'showgrid': False}, xaxis_title='No. of messages from 11 am to 5 am', title_x=0.5, )
+    fig.update_layout(template='plotly_white', showlegend=False)
     return fig
 
 def early_birds():
@@ -258,7 +258,7 @@ layout = dbc.Container([
     dbc.Row([
         dbc.Col([
             html.Div([
-                html.H2(["Night Owls - 12 AM to 5 AM"], className='text-center mt-xl-5'),
+                html.H2(["Night Owls - 11 AM to 5 AM"], className='text-center mt-xl-5'),
             ]),
             html.Div([
             dcc.Graph(
@@ -431,7 +431,7 @@ layout = dbc.Container([
     html.Footer(["Created with 🖤 by ", html.A("Atharva Katre",id="creator",style={'text-decoration':'underline','cursor': 'pointer'})]),
     dbc.Modal(
                 [
-                dbc.ModalHeader(html.H3("Connect with me!"),style={'color':'Green',}),
+                dbc.ModalHeader(html.H3(html.B("Connect with me ⚡")),style={'color':'Green'}),
                 dbc.ModalBody([
                     dbc.Button(html.Span([html.A(className="fab fa-github ml-2",href="https://github.com/AtharvaKatre")])),"        ",
                     dbc.Button(html.Span([html.A(className="fab fa-linkedin ml-2",href="https://www.linkedin.com/in/atharva-katre-563639177")])),"      ",
@@ -508,13 +508,4 @@ def update_my_graph(val_chosen):
     else :
         raise dash.exceptions.PreventUpdate
 
-def toggle_modal(n1, n2, is_open):
-    if n1 or n2:
-        return not is_open
-    return is_open
-    
-# @app.callback(
-#     Output("socials", "is_open"),
-#     [Input("creator", "n_clicks"), Input("socials_close", "n_clicks")],
-#     [State("socials", "is_open")],)(toggle_modal)
 
