@@ -7,14 +7,12 @@ import os
 import base64
 from urllib.parse import quote as urlquote
 from urllib.parse import urlparse
-import dash
 import dash_bootstrap_components as dbc
 import dash_core_components as dcc
 import dash_html_components as html
 from dash.dependencies import Input, Output, State
 import dash_uploader as du
 from app import app
-# from app import server
 from apps import suckmydata
 
 UPLOAD_DIRECTORY = os.getcwd()+"/datasets/app_uploaded_files"
