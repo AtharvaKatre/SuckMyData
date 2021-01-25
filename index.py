@@ -66,7 +66,7 @@ app.layout = html.Div([
 index_page = dbc.Container([
 
     dbc.Row(
-        dbc.Col(html.H1("SuckMyData",
+        dbc.Col(html.H1(html.B("SuckMyData"),
                         className='text-center mt-3'),
                 ),
                 style={'color': 'Green','font-size':'500px','font-weight': 'bold'},
@@ -95,7 +95,7 @@ index_page = dbc.Container([
                     html.A("Concerned about PRIVACY ?", id="open", className="mr-1",style={'color':'brown','cursor': 'pointer'}),
                     dbc.Modal(
                       [
-                        dbc.ModalHeader(html.H4(html.B("Don't Judge us by the Name 😜")),style={'color':'red'}),
+                        dbc.ModalHeader(html.H4(html.B("Don't Judge us by the Name 😜")),style={'color':'red'},className='text-center'),
                         dbc.ModalBody(["We respect your privacy, no uploaded data or files are stored anywhere on the servers, only an instance of your file is created to compute the data for creating visualizations."]),
                         dbc.ModalFooter(
                          dbc.Button("Close", id="close", className="ml-auto")
@@ -141,7 +141,7 @@ index_page = dbc.Container([
     dbc.Row(
         dbc.Col([
             html.H1("Demo",className="text-center",style={'color':'cornflowerblue'}),
-            html.P("Checkout analysis on a Fake generated chat."),
+            html.P("Check out analysis on a Fake generated chat."),
             dcc.Link(dbc.Button("Demo Analysis",size="sm",className="center"), href='/demo')
         ])
     ),
@@ -269,7 +269,7 @@ def display_page(pathname):
                     os.remove(os.path.join(UPLOAD_DIRECTORY, f))
 
                 def startsWithDate(s):
-                    pattern = '^(([0-9])|((1)[0-2]))(\/)([1-9]|[0-2][0-9]|(3)[0-1])(\/)(\d{2}|\d{4}), ([0-9]|[1][0-2]):([0-9][0-9])'
+                    pattern = '^(([0-9])|((1)[0-2])|([1-9]|[0-2][0-9]|(3)[0-1]))(\/)([1-9]|[0-2][0-9]|(3)[0-1])(\/)(\d{2}|\d{4}), ([0-9]|[1][0-2]):([0-9][0-9])'
                     result = re.match(pattern, s)
                     if result:
                         return True
@@ -388,14 +388,28 @@ def display_page(pathname):
                     return fig
 
                 def night_owls():
-                    fig = px.bar(df[(df['datetime'].dt.hour >= 23) | ((df['datetime'].dt.hour >= 0) & (df['datetime'].dt.hour <= 4))]['Name'].value_counts().rename_axis('Name').reset_index(name='count'), x='count', y='Name', orientation='h', color='Name', color_discrete_sequence=px.colors.sequential.matter_r)
+                    night_df = df[(df['datetime'].dt.hour >= 23) | (
+                                (df['datetime'].dt.hour >= 0) & (df['datetime'].dt.hour <= 4))][
+                        'Name'].value_counts().rename('Name').reset_index()
+                    night_df.columns = ['Name','count']
+                    if len(night_df) == 0:
+                        data = [['null', 0]]
+                        night_df.reset_index()
+                        night_df = pd.DataFrame(data, columns=['Name', 'count'])
+                    fig = px.bar(night_df, x='count', y='Name', orientation='h', color='Name', color_discrete_sequence=px.colors.sequential.matter_r)
                     fig.update_traces(hovertemplate=None, hoverinfo='x')
                     fig.update_layout(barmode='stack', yaxis={'categoryorder': 'total ascending', 'title': 'Group Members', 'showgrid': False}, xaxis_title='No. of messages from 11 am to 5 am', title_x=0.5, )
                     fig.update_layout(template='plotly_white', showlegend=False)
                     return fig
 
                 def early_birds():
-                    fig = px.bar(df[(df['datetime'].dt.hour >= 6) & (df['datetime'].dt.hour <= 8)]['Name'].value_counts().rename_axis('Name').reset_index(name='count'), x='count', y='Name', orientation='h', color='Name', color_discrete_sequence=px.colors.sequential.Oryel[::-1])
+                    early_df = df[(df['datetime'].dt.hour >= 6) & (df['datetime'].dt.hour >= 8)]['Name'].value_counts().rename('Name').reset_index()
+                    early_df.columns = ['Name','count']
+                    if len(early_df) == 0:
+                        data = [['null', 0]]
+                        early_df.reset_index()
+                        early_df = pd.DataFrame(data, columns=['Name', 'count'])
+                    fig = px.bar(early_df, x='count', y='Name', orientation='h', color='Name', color_discrete_sequence=px.colors.sequential.Oryel[::-1])
                     fig.update_traces(hovertemplate=None,hoverinfo='x')
                     fig.update_layout(barmode = 'stack', yaxis={'categoryorder':'total ascending','title':'Group Members','showgrid':False}, xaxis_title='No. of messages from 6 am to 9 am', title_x=0.5,)
                     fig.update_layout(template='plotly_white', showlegend = False)
@@ -425,6 +439,11 @@ def display_page(pathname):
 
                     domain_df = link_df['Message'].apply(extract_domain).value_counts().rename('count').reset_index()
                     domain_df.columns=['Domains','count']
+
+                    if (len(domain_df)==0):
+                        data = [['null', 0]]
+                        domain_df.reset_index()
+                        domain_df = pd.DataFrame(data, columns=['Domains', 'count'])
 
                     fig = px.bar(domain_df.head(10), y='Domains', x='count', orientation='h', color='Domains', color_discrete_sequence=px.colors.sequential.dense[::-1])
                     fig.update_traces(hovertemplate=None,hoverinfo='x')
@@ -517,8 +536,8 @@ def display_page(pathname):
                 new_dash = dbc.Container([
 
                     dbc.Row(
-                        dbc.Col(html.H1(html.A("SuckMyData",
-                                        className='text-center mt-4',style={'color': 'Green','text-decoration':'None'}))
+                        dbc.Col(html.H1(html.A(html.B("SuckMyData"),
+                                        className='text-center mt-4',href="/",style={'color': 'Green','text-decoration':'None','cursor':'pointer'}))
                                 ),
                     ),
                     dbc.Row(
@@ -801,7 +820,7 @@ def display_page(pathname):
             no_file = dbc.Container([
 
                 dbc.Row(
-                    dbc.Col(html.H1(html.A("SuckMyData",
+                    dbc.Col(html.H1(html.A(html.B("SuckMyData"),
                                            className='text-center mt-4', href="/",
                                            style={'color': 'Green', 'text-decoration': 'None', 'cursor': 'pointer'}))
                             ),

@@ -159,7 +159,7 @@ def daysofweek():
 
 layout = dbc.Container([
     dbc.Row(
-        dbc.Col(html.H1(html.A("SuckMyData",
+        dbc.Col(html.H1(html.A(html.B("SuckMyData"),
                                className='text-center mt-4', href="/",
                                style={'color': 'Green', 'text-decoration': 'None', 'cursor': 'pointer'}))
                 ),
